@@ -15,7 +15,10 @@ defmodule Main do
     newAccumulator = Integer.mod(rawNewAccumulator, 100)
 
     rotations =
-      div(abs(rawNewAccumulator) + if((rawNewAccumulator <= 0) && accumulator > 0, do: 100, else: 0), 100);
+      div(
+        abs(rawNewAccumulator) + if(rawNewAccumulator <= 0 && accumulator > 0, do: 100, else: 0),
+        100
+      )
 
     newPart2 = part2 + rotations
     newPart1 = part1 + if(newAccumulator == 0, do: 1, else: 0)
@@ -23,9 +26,7 @@ defmodule Main do
     processNumbers(tail, newAccumulator, newPart1, newPart2)
   end
 
-  def processNumbers([], _accumulator, part1, part2) do
-    %{part1: part1, part2: part2}
-  end
+  def processNumbers([], _accumulator, part1, part2), do: %{part1: part1, part2: part2}
 end
 
 result = Main.processNumbers(numbers)

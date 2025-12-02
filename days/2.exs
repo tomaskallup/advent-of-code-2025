@@ -12,17 +12,11 @@ defmodule Main do
     parseInput(tail, newAcc)
   end
 
-  def parseInput([], acc) do
-    acc
-  end
+  def parseInput([], acc), do: acc
 
-  def parseRange([head]) do
-    String.to_integer(head)
-  end
+  def parseRange([head]), do: String.to_integer(head)
 
-  def parseRange([head | tail]) do
-    %{from: parseRange([head]), to: parseRange(tail)}
-  end
+  def parseRange([head | tail]), do: %{from: parseRange([head]), to: parseRange(tail)}
 
   def parseRange(str) do
     str
@@ -37,9 +31,7 @@ defmodule Main do
     String.contains?(inner, str)
   end
 
-  def checkID(str) when rem(byte_size(str), 2) == 1 do
-    false
-  end
+  def checkID(str) when rem(byte_size(str), 2) == 1, do: false
 
   def checkID(str) when rem(byte_size(str), 2) == 0 do
     n = div(byte_size(str), 2)
@@ -50,9 +42,7 @@ defmodule Main do
 
   def checkRange(from, to, acc \\ %{part1: 0, part2: 0})
 
-  def checkRange(from, to, acc) when from > to do
-    acc
-  end
+  def checkRange(from, to, acc) when from > to, do: acc
 
   def checkRange(from, to, acc) do
     newAcc = %{
@@ -63,15 +53,11 @@ defmodule Main do
     checkRange(from + 1, to, newAcc)
   end
 
-  def checkRange(%{from: from, to: to}) do
-    checkRange(from, to)
-  end
+  def checkRange(%{from: from, to: to}), do: checkRange(from, to)
 
   def checkRanges(ranges, acc \\ %{part1: 0, part2: 0})
 
-  def checkRanges([], acc) do
-    acc
-  end
+  def checkRanges([], acc), do: acc
 
   def checkRanges([range | tail], acc) do
     rangeResult = checkRange(range)
