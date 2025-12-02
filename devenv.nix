@@ -1,0 +1,5 @@
+{ ... }:
+
+{
+  languages.elixir.enable = true;
+}
