@@ -11,3 +11,6 @@ devenv.local.yaml
 
 inputs/day-*.txt
 !inputs/day-*-example.txt
+
+_build
+deps
