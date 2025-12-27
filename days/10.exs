@@ -3,146 +3,6 @@ inputContent =
   |> String.trim()
   |> String.split("\n")
 
-defimpl String.Chars, for: Map do
-  def to_string(map) do
-    interior =
-      map
-      |> Enum.map_join(", ", fn {k, v} -> "#{k} => #{v}" end)
-
-    "%{#{interior}}"
-  end
-end
-
-defimpl String.Chars, for: Tuple do
-  def to_string(tuple) do
-    interior =
-      tuple
-      |> Tuple.to_list()
-      |> Enum.map(&Kernel.to_string/1)
-      |> Enum.join(", ")
-
-    "{#{interior}}"
-  end
-end
-
-defmodule GF2 do
-  import Bitwise
-
-  def solve(a, b) do
-    augmented = augment(a, b)
-    {rref, pivots} = eliminate(augmented)
-    find_min_solution(rref, pivots)
-  end
-
-  # Create augment matrix
-  defp augment(a, b) do
-    Enum.zip(a, b)
-    |> Enum.map(fn {row, bi} -> row ++ [bi] end)
-  end
-
-  defp xor_rows(row1, row2) do
-    Enum.zip(row1, row2)
-    |> Enum.map(fn {x, y} -> bxor(x, y) end)
-  end
-
-  defp eliminate(matrix) do
-    cols = length(hd(matrix)) - 1
-
-    Enum.reduce(0..(cols - 1), {matrix, 0, []}, fn col, {mat, row, pivots} ->
-      case find_pivot(mat, row, col) do
-        nil ->
-          {mat, row, pivots}
-
-        pivot_row ->
-          mat =
-            mat
-            |> swap_rows(row, pivot_row)
-            |> eliminate_column(row, col)
-
-          {mat, row + 1, pivots ++ [col]}
-      end
-    end)
-    |> then(fn {mat, _row, pivots} -> {mat, pivots} end)
-  end
-
-  defp find_pivot(matrix, start_row, col) do
-    matrix
-    |> Enum.with_index()
-    |> Enum.drop(start_row)
-    |> Enum.find_value(fn {row, idx} ->
-      if Enum.at(row, col) == 1, do: idx, else: nil
-    end)
-  end
-
-  defp swap_rows(matrix, i, i), do: matrix
-
-  defp swap_rows(matrix, i, j) do
-    row_i = Enum.at(matrix, i)
-    row_j = Enum.at(matrix, j)
-
-    matrix
-    |> List.replace_at(i, row_j)
-    |> List.replace_at(j, row_i)
-  end
-
-  defp eliminate_column(matrix, pivot_row, col) do
-    pivot = Enum.at(matrix, pivot_row)
-
-    Enum.with_index(matrix)
-    |> Enum.map(fn
-      {row, ^pivot_row} ->
-        row
-
-      {row, _idx} ->
-        if Enum.at(row, col) == 1 do
-          xor_rows(row, pivot)
-        else
-          row
-        end
-    end)
-  end
-
-  defp find_min_solution(matrix, pivots) do
-    cols = length(hd(matrix)) - 1
-    free_vars = Enum.filter(0..(cols - 1), &(&1 not in pivots))
-
-    particular = particular_solution(matrix, pivots)
-    nullspace = nullspace_vectors(matrix, pivots, free_vars)
-
-    combinations(nullspace, length(particular))
-    |> Enum.map(fn combo -> xor_rows(particular, combo) end)
-    |> Enum.min_by(&Enum.sum/1)
-  end
-
-  defp particular_solution(matrix, pivots) do
-    solution = List.duplicate(0, length(hd(matrix)) - 1)
-
-    Enum.reduce(Enum.with_index(pivots), solution, fn {col, row}, acc ->
-      List.replace_at(acc, col, Enum.at(Enum.at(matrix, row), -1))
-    end)
-  end
-
-  defp nullspace_vectors(matrix, pivots, free_vars) do
-    Enum.map(free_vars, fn free ->
-      base = List.duplicate(0, length(hd(matrix)) - 1)
-      base = List.replace_at(base, free, 1)
-
-      Enum.reduce(Enum.with_index(pivots), base, fn {col, row}, acc ->
-        val = Enum.at(Enum.at(matrix, row), free)
-        List.replace_at(acc, col, val)
-      end)
-    end)
-  end
-
-  defp combinations(vectors, size) do
-    zero = List.duplicate(0, size)
-
-    Enum.reduce(vectors, [zero], fn v, acc ->
-      acc ++ Enum.map(acc, &xor_rows(&1, v))
-    end)
-  end
-end
-
 defmodule ILP do
   def solve(buttons, goal) do
     # vars = list of input vars (buttons)
@@ -249,15 +109,41 @@ defmodule Machine do
     _parse_lights({splitter, machine}) |> _parse_buttons() |> _parse_joltage() |> elem(1)
   end
 
+  defp all_combinations([]), do: [[]]
+
+  defp all_combinations([a | rest]) do
+    sub = all_combinations(rest)
+
+    sub ++ Enum.map(sub, &[a | &1])
+  end
+
   def solve_lights(machine) do
-    matrix =
-      Enum.map(Range.new(0, length(machine.lights) - 1), fn index ->
-        Enum.map(machine.buttons, fn button ->
-          if(index in button, do: 1, else: 0)
-        end)
+    # Encode expected lights as integer
+    expected =
+      Enum.with_index(machine.target_lights)
+      |> Enum.sum_by(fn {p, index} -> if(p == 1, do: 2 ** index, else: 0) end)
+
+    # Encode buttons as integers
+    encoded =
+      machine.buttons
+      |> Enum.map(&Enum.sum_by(&1, fn p -> 2 ** p end))
+
+    # Generate all combinations of the buttons (sorted by length asc)
+    combinations_sorted =
+      encoded
+      |> all_combinations()
+      |> Enum.sort_by(&length/1)
+
+    # Find a combination which matches after xor-ing all the buttons
+    match =
+      combinations_sorted
+      |> Enum.find(fn seq ->
+        result = Enum.reduce(seq, 0, &Bitwise.bxor/2)
+
+        result == expected
       end)
 
-    GF2.solve(matrix, machine.target_lights) |> Enum.sum()
+    length(match)
   end
 
   def solve_joltage(%{buttons: buttons, target_joltage: target_joltage}) do
