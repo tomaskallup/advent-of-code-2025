@@ -23,7 +23,7 @@ defmodule AdventOfCode2025.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:memoize, "~> 1.4"},
+      {:dantzig, "~> 0.1.0"},
     ]
   end
 end

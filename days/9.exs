@@ -16,8 +16,6 @@ defimpl String.Chars, for: Tuple do
 end
 
 defmodule Utils do
-  use Memoize
-
   def area({x1, y1}, {x2, y2}), do: (1 + abs(x1 - x2)) * (1 + abs(y1 - y2))
 
   def _check_intersection_horizontal({{rx1, ry1}, {rx2, ry2}}, {{x1, y1}, {x2, y2}}) do
